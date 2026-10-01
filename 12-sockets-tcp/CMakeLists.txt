@@ -1,0 +1,7 @@
+# 12-sockets-tcp: parejas servidor/cliente, se lanzan en dos terminales (ver GUION.md)
+pcd_ejemplo(01_servidor_tcp_eco)
+pcd_ejemplo(02_cliente_tcp_eco)
+pcd_ejemplo(03_servidor_tcp_por_lineas)
+pcd_ejemplo(04_cliente_tcp_por_lineas)
+pcd_ejemplo(05_servidor_tcp_secuencial)
+pcd_ejemplo(06_cliente_tcp_lento)

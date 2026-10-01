@@ -1,0 +1,8 @@
+# 13-servidores-concurrentes: servidores con hilos, candados y semáforos (ver GUION.md)
+pcd_ejemplo(01_servidor_un_hilo_por_conexion)
+pcd_ejemplo(02_lanzador_de_clientes_concurrentes)
+pcd_ejemplo_sin_optimizar(03_servidor_visitas_sin_mutex)
+pcd_ejemplo_sin_optimizar(04_servidor_visitas_con_mutex)
+pcd_ejemplo(05_servidor_limite_con_semaforo)
+pcd_ejemplo(06_servidor_chat_difusion)
+pcd_ejemplo(07_cliente_chat)

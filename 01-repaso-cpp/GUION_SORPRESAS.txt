@@ -1,0 +1,874 @@
+=====================================================================
+GUION DE SORPRESAS, 01 repaso de C++ desde cero
+=====================================================================
+
+Complemento del GUION.md de esta carpeta. Para cada fichero: que les
+puede sorprender, como lo enseno en directo y que idea se tienen que
+llevar. Todas las salidas estan comprobadas con g++ 13.3 en Linux,
+C++20, perfil Debug y -Wall -Wextra (lo mismo que pone el CMakeLists
+del curso).
+
+Como leer este guion:
+
+   HAGO      -> lo que tecleo o cambio delante de ellos
+   PREGUNTO  -> lo que lanzo a la clase ANTES de ejecutar
+   SALE      -> lo que aparece por pantalla
+   DIGO      -> la idea que se tienen que llevar
+   -> HILOS  -> conecta con algo de las carpetas de hilos; decirlo aunque
+                vaya con prisa
+
+Si voy justo de tiempo, lo imprescindible es: 05, 07, 08, 09, 15 y todo
+lo marcado con -> HILOS.
+
+Despues de cada cambio en directo, DESHAGO el cambio antes de pasar al
+siguiente punto.
+
+
+---------------------------------------------------------------------
+LO QUE DIGO EL PRIMER DIA: LAS CUATRO FORMAS DE FALLAR EN C++
+---------------------------------------------------------------------
+
+   ERROR     -> no compila. No se ejecuta NADA.
+   AVISO     -> (warning) compila y se ejecuta igual. Sale en la ventana
+                de compilacion y es muy facil no verlo.
+   CUELGUE   -> compila, arranca y revienta a mitad. CLion lo dice al
+                final, por ejemplo:
+                Process finished with exit code 139 (interrupted by signal 11:SIGSEGV)
+   SILENCIO  -> compila, no avisa, no revienta... y el resultado esta
+                MAL. En C++ pasa mucho mas que en Python.
+
+   Codigos que van a salir hoy:
+      132 SIGILL   instruccion ilegal (funcion sin return)
+      134 SIGABRT  el programa se aborta a si mismo (.at fuera de rango)
+      136 SIGFPE   division entera entre cero
+      139 SIGSEGV  memoria que no es tuya (puntero nulo, variable muerta)
+   En Windows los numeros son otros, pero la idea es la misma.
+
+
+=====================================================================
+FICHERO 01_variables_y_tipos.cpp
+=====================================================================
+
+[01.1] Un error de compilacion no deja ejecutar NADA
+
+   HAGO: quito el ; de   int edad = 20;
+   PREGUNTO: "Se imprimira algo antes de fallar?"
+   SALE: error: expected ',' or ';' before 'double'      (linea 18)
+         error: 'nota' was not declared in this scope    (linea 31)
+         y no se ejecuta ni una linea
+   DIGO: el compilador revisa el fichero entero antes de crear el
+         programa. Dos cosas mas: marca el error en la linea SIGUIENTE
+         (donde se da cuenta), y un fallo arrastra otros detras.
+         Arreglad siempre el PRIMER error de la lista.
+
+[01.2] Un cuelgue en ejecucion SI deja pasar lo anterior
+
+   HAGO: justo antes del cout de nombre anado:
+            int cero = 0;
+            cout << "division: " << edad / cero << "\n";
+   PREGUNTO: "Compila? Que sale?"
+   SALE: compila sin avisos, y:
+         edad: 20
+         nota: 7.5
+         letra: A
+         aprobado: 1   (true se imprime como 1)
+         Process finished with exit code 136 (interrupted by signal 8:SIGFPE)
+   DIGO: el compilador no sabe cuanto vale cero hasta que el programa
+         corre. Hay errores "antes de empezar" (compilacion) y cuelgues
+         "a mitad de camino" (ejecucion). El segundo deja hecho todo lo
+         anterior.
+   OJO: en Windows puede que no salga ni lo anterior: la salida se queda
+        en espera y se pierde con el cuelgue.
+
+[01.3] La caja SI tiene tipo, y lo que no cabe se corta
+
+   HAGO: edad = edad + 1;   por   edad = "veinte";
+   SALE: error: invalid conversion from 'const char*' to 'int'
+   HAGO: ahora   int edad = 20.7;
+   PREGUNTO: "Error, aviso, o que?"
+   SALE: ni error ni aviso:
+         edad: 20
+   DIGO: al contrario que en Python, el tipo de la caja no cambia nunca.
+         Y si metes un decimal en un int, lo corta sin decir nada.
+         Con llaves,  int edad{20.7};  SI da error (narrowing conversion).
+
+[01.4] Comillas simples y dobles no son lo mismo
+
+   HAGO: char letra = "A";
+   SALE: error: invalid conversion from 'const char*' to 'char'
+   HAGO: char letra = 'AB';
+   SALE: dos avisos (multi-character character constant) y
+         letra: B
+   DIGO: simples, UN caracter. Dobles, texto. Y un aviso no es un adorno:
+         ha compilado y el valor esta mal.
+
+[01.5] Una variable sin valor tiene basura
+
+   HAGO: int edad;          (quito el = 20)
+   PREGUNTO: "Que valdra edad? Cero?"
+   SALE: aviso: 'edad' is used uninitialized
+         edad: 32753
+   HAGO: ejecuto otra vez
+   SALE: edad: 32600        (otro numero cada vez)
+   DIGO: en Python no se puede usar una variable sin darle valor. En C++
+         si, y vale lo que hubiera en esa memoria. Toda variable nace
+         con valor, siempre.
+
+[01.6] Mayusculas, bool y const
+
+   HAGO: edad = edad + 1;   por   Edad = edad + 1;
+   SALE: error: 'Edad' was not declared in this scope; did you mean 'edad'?
+   HAGO: cout << true + true << "\n";
+   PREGUNTO: "Cuanto vale true + true?"
+   SALE: 2
+   DIGO: por dentro true es 1 y false es 0. Por eso aprobado sale como 1.
+   HAGO: descomento   NUM_HILOS = 8;
+   SALE: error: assignment of read-only variable 'NUM_HILOS'
+
+   -> HILOS: lo que es const no da problemas aunque lo lean mil hilos a
+      la vez. Los problemas empiezan cuando alguien ESCRIBE.
+
+
+=====================================================================
+FICHERO 02_operaciones_aritmeticas.cpp
+=====================================================================
+
+[02.1] El cast en el sitio equivocado
+
+   PREGUNTO: "Y si pongo el parentesis asi:  (double) (a / b) ?"
+   HAGO: cambio  (double) a / b  por  (double) (a / b)
+   SALE: (double) a / b = 3
+   DIGO: primero se hace lo de dentro del parentesis, entre enteros: 3.
+         Convertir 3 en double da 3. El cast va ANTES de dividir.
+
+[02.2] Guardarlo en un double no arregla nada
+
+   HAGO: double media = a / b;          (sin cast)
+   SALE: (double) a / b = 3
+   HAGO: anado   double media_notas = (7 + 8) / 2;
+                 cout << media_notas << "\n";
+   SALE: 7
+   DIGO: la parte derecha se calcula ANTES de mirar donde se guarda.
+         Y fijaos: sale 3, no 3.0. cout no ensena el .0, asi que por
+         pantalla no se distingue un double de un int.
+
+[02.3] Con negativos, la division corta hacia el cero
+
+   HAGO: int a = -7;
+   PREGUNTO: "Cuanto es -7 / 2? Y -7 % 2?"
+   SALE: a / b = -3
+         a % b = -1
+   DIGO: C++ corta hacia el cero (Python, con // y %, da -4 y 1). Y el resto puede ser
+         negativo: para saber si es impar, comparad  % 2 != 0,
+         nunca  % 2 == 1.
+
+[02.4] 0.1 + 0.2 no es 0.3, y cout lo esconde   (la que mas sorprende)
+
+   HAGO: cout << 0.1 + 0.2 << "\n";
+         cout << (0.1 + 0.2 == 0.3) << "\n";
+   SALE: 0.3
+         0
+   PREGUNTO: "Si imprime 0.3, por que la comparacion es falsa?"
+   HAGO: #include <iomanip>  y  cout << setprecision(17) << 0.1 + 0.2
+   SALE: 0.30000000000000004
+   DIGO: el ordenador guarda los decimales en binario y no puede guardar
+         0.1 exacto. cout redondea a 6 cifras al imprimir y lo tapa.
+         Nunca comparar decimales con ==.
+
+[02.5] Los enteros SI se desbordan
+
+   HAGO: int grande = 2147483647;
+         grande = grande + 1;
+         cout << grande << "\n";
+   PREGUNTO: "Cuanto sale?"
+   SALE: -2147483648           (sin error ni aviso)
+   DIGO: un int tiene sitio para unos 2100 millones. Al pasarse da la
+         vuelta a los negativos. En Python no pasaba. Oficialmente C++
+         no promete nada cuando pasa esto: hoy da la vuelta, manana
+         quien sabe.
+
+   -> HILOS: contador++ PARECE una operacion y son TRES: leer, sumar y
+      guardar. Lo digo ya. En la carpeta 05
+      (02_atomicidad_incremento_en_tres_pasos) es exactamente lo que se
+      rompe.
+
+
+=====================================================================
+FICHERO 03_condicionales.cpp
+=====================================================================
+
+[03.1] = en vez de == COMPILA
+
+   HAGO: el primer if lo cambio por   if (nota = 5)
+   PREGUNTO: "En Python esto es error de sintaxis. Y en C++?"
+   SALE: solo un aviso (suggest parentheses around assignment used as
+         truth value), y:
+         Sobresaliente
+         Puede presentarse a la defensa
+         Tiene que entregar la practica
+   DIGO: un 6.5 sale Sobresaliente. = GUARDA 5 en nota, y un 5 cuenta
+         como verdadero. Ademas nota ya vale 5 para el resto del programa.
+   HAGO: if (nota = 0)
+   SALE: Suspenso
+         Tiene que entregar la practica
+   DIGO: el 0 cuenta como falso; cualquier otro numero, como verdadero.
+
+[03.2] Solo entra en la primera que se cumple
+
+   HAGO: double nota = 9.5;
+   PREGUNTO: "9.5 cumple las tres condiciones. Cuantas calificaciones
+             salen?"
+   SALE: Sobresaliente         (solo esa)
+   DIGO: se entra en la PRIMERA que se cumple; las demas ni se miran. Por
+         eso el orden de los else if importa.
+
+[03.3] Comparaciones encadenadas: compila y miente
+
+   HAGO: nota = 9.5  y anado   cout << (5 <= nota < 7) << "\n";
+   PREGUNTO: "9.5 esta entre 5 y 7?"
+   SALE: dos avisos (comparisons like 'X<=Y<=Z' do not have their
+         mathematical meaning), y:
+         1
+   DIGO: C++ hace primero  5 <= nota  (da 1) y despues  1 < 7  (cierto).
+         En Python funcionaria. En C++ se escribe  nota >= 5 && nota < 7.
+
+[03.4] El punto y coma detras del if
+
+   HAGO: int asistencia = 50;  y pongo ; detras del if del &&:
+            if (nota >= 5 && asistencia >= 80); {
+   PREGUNTO: "Con 50 de asistencia, saldra 'Puede presentarse'?"
+   SALE: aviso (suggest braces around empty body in an 'if' statement), y
+         Puede presentarse a la defensa
+   DIGO: el ; cierra el if con un cuerpo vacio. Las llaves de debajo son
+         un bloque suelto que se ejecuta siempre.
+
+[03.5] Sin llaves, solo manda la primera linea
+
+   HAGO: asistencia = 50, quito las llaves de ese mismo if y anado debajo,
+         con la misma sangria:
+            cout << "Enhorabuena\n";
+   SALE: Aprobado
+         Enhorabuena
+         Tiene que entregar la practica
+   DIGO: en C++ la sangria no significa nada; las llaves, si. Por eso en
+         la asignatura llevan llaves siempre, aunque sea una linea.
+
+
+=====================================================================
+FICHERO 04_bucle_for.cpp
+=====================================================================
+
+[04.1] Tocar la variable dentro del for SI cambia las vueltas
+
+   HAGO: en el primer for, debajo del cout, anado   i = 100;
+   PREGUNTO: "Cuantas vueltas dara?"
+   SALE: vuelta 0              (y nada mas de ese for)
+   DIGO: al contrario que en Python. El for de C++ solo hace i++ y mira la
+         condicion: 101 < 5 es falso y se acaba. No toqueis la variable
+         del for dentro del cuerpo.
+
+[04.2] Una vuelta de mas
+
+   HAGO: i < 5   por   i <= 5
+   SALE: vuelta 0 ... vuelta 5      (6 vueltas)
+   DIGO: el error mas frecuente con bucles, "off by one". Con un vector,
+         esa vuelta de mas lee fuera (lo vemos en el 12).
+
+[04.3] El punto y coma detras del for
+
+   HAGO: for (int i = 0; i < 5; i++); {
+   SALE: error: 'i' was not declared in this scope
+   DIGO: el ; deja el for vacio y las llaves son un bloque aparte donde i
+         ya no existe. Aqui el compilador os salva de chiripa. En el
+         while del 05 no.
+
+[04.4] El acumulador dentro del bucle
+
+   HAGO: muevo   int suma = 0;   a la primera linea DENTRO del for
+   SALE: error: 'suma' was not declared in this scope   (en el cout)
+   DIGO: lo que se declara dentro de unas llaves muere al cerrarlas. Y
+         aunque compilara, se pondria a 0 en cada vuelta. El INICIO va
+         fuera del bucle.
+
+
+=====================================================================
+FICHERO 05_bucle_while_y_do_while.cpp     *** EL MAS IMPORTANTE ***
+=====================================================================
+
+[05.1] Cuanto vale al salir
+
+   PREGUNTO: "Duplico desde 1 mientras sea <= 1000. Cuanto vale cantidad
+             al salir? 1000?"
+   SALE: Duplicando desde 1, supero 1000 en 10 pasos (1024)
+   DIGO: el while tiene que PASARSE para que la condicion falle.
+
+[05.2] Un bucle infinito que no imprime nada
+
+   HAGO: borro la linea   cantidad = cantidad * 2;
+   PREGUNTO: "Que va a pasar?"
+   SALE: NADA. Ni una linea. El programa parece colgado.
+   HAGO: boton rojo (Stop) delante de ellos
+   DIGO: dentro del bucle no hay cout, asi que un bucle infinito es una
+         pantalla vacia. Si un programa se queda quieto, antes de pensar
+         que el ordenador va lento, pensad en un bucle que no acaba.
+
+   -> HILOS: un interbloqueo (carpeta 05, 06_intento3_interbloqueo) se ve
+      por fuera exactamente asi: pantalla quieta y nada.
+
+[05.3] El punto y coma detras del while
+
+   HAGO: restauro y pongo   while (cantidad <= 1000); {
+   SALE: solo un aviso (this 'while' clause does not guard...) y otra vez
+         pantalla vacia para siempre
+   DIGO: aqui el compilador NO os salva como en el for del 04. El while
+         vacio repite "nada" sin fin, porque cantidad no cambia nunca.
+
+[05.4] El do-while entra aunque la condicion sea falsa
+
+   HAGO: cambio  do { ... } while (intentos < 5);
+         por     while (intentos < 5) { ... }
+   PREGUNTO: "Saldra 'Dentro del do-while'?"
+   SALE: esa linea desaparece
+   DIGO: el while pregunta antes de entrar; el do-while, al salir.
+   HAGO: en el do-while original quito el ; de   while (intentos < 5);
+   SALE: error: expected ';' before 'int'
+   DIGO: el do-while es el unico bucle que termina en punto y coma.
+
+[05.5] La bandera NO saca del bucle al momento
+
+   HAGO: quito el else y dejo el numero++ fuera del if:
+            if (numero % 7 == 0) {
+                encontrado = true;
+            }
+            numero++;
+   PREGUNTO: "El primer multiplo de 7 mayor que 50 es 56. Que saldra?"
+   SALE: Primer multiplo de 7 mayor que 50: 57
+   DIGO: al poner encontrado = true el resto de la vuelta SE SIGUE
+         EJECUTANDO, incluido el numero++. El bucle solo se entera cuando
+         vuelve a mirar la condicion de arriba. Por eso el fichero lleva
+         else.
+
+   -> HILOS: cuando otro hilo cambie una bandera para parar un servidor,
+      pasara lo mismo: el bucle termina la vuelta que esta haciendo. No
+      se para en seco.
+
+[05.6] Olvidar el !
+
+   HAGO: while (!encontrado)   por   while (encontrado)
+   SALE: Primer multiplo de 7 mayor que 50: 51
+   DIGO: ni error, ni aviso, ni cuelgue. El bucle no entra nunca y el
+         resultado es mentira. El fallo mas peligroso es el que da un
+         numero con buena cara.
+
+
+=====================================================================
+FICHERO 06_funciones_libres.cpp
+=====================================================================
+
+[06.1] Usar una funcion que el compilador aun no conoce
+
+   HAGO: borro el prototipo   void saludar(const string& nombre);
+   SALE: error: 'saludar' was not declared in this scope
+   DIGO: el compilador lee de arriba abajo. Si llega a la llamada sin
+         haber visto la funcion, no la conoce. Para eso esta el
+         prototipo arriba.
+
+[06.2] Declarada pero sin cuerpo: un error de otro tipo
+
+   HAGO: restauro, y borro la definicion de calcular_cuadrado (la de
+         abajo), dejando el prototipo
+   SALE: ningun error en ninguna linea del .cpp, sino este otro:
+         undefined reference to `calcular_cuadrado(int)'
+         collect2: error: ld returned 1 exit status
+         (con el sistema en espanol: referencia a
+          `calcular_cuadrado(int)' sin definir)
+   DIGO: crear el programa va en dos pasos. Primero se traduce el fichero
+         (al compilador le basta el prototipo) y despues se ENLAZA todo
+         (y el enlazador no encuentra el cuerpo). Si veis "undefined
+         reference" o "ld returned", no es la sintaxis: falta una pieza.
+
+[06.3] Olvidar el return: compila y revienta
+
+   HAGO: return numero * numero;   por   numero * numero;
+   PREGUNTO: "Compila?"
+   SALE: dos avisos (no return statement in function returning
+         non-void), y:
+         Hola, Ana
+         Hola, Luis
+         Process finished with exit code 132 (interrupted by signal 4:SIGILL)
+   DIGO: la funcion promete un int y no lo entrega. En Python devolveria
+         None; en C++ revienta o, peor, sigue con basura. Ese aviso en
+         concreto, tratadlo como un error.
+
+[06.4] void no devuelve nada
+
+   HAGO: saludar("Luis");   por   int x = saludar("Luis");
+   SALE: error: void value not ignored as it ought to be
+   DIGO: imprimir es ensenar en pantalla. Devolver es entregar el valor
+         para seguir usandolo. saludar imprime, pero no entrega nada.
+
+[06.5] El nombre sin parentesis
+
+   HAGO: saludar("Luis");   por   saludar;
+   SALE: solo avisos (statement is a reference, not call, to function
+         'saludar'), y "Hola, Luis" desaparece
+   DIGO: sin parentesis es la funcion en si, sin ejecutarla.
+
+   -> HILOS: asi se le da la funcion a un hilo:
+            thread h(saludar, "Eva");
+      Si escriben  thread h(saludar("Eva"));  la funcion se ejecuta en
+      ese momento, en main, y al hilo le llega lo que devuelve (nada):
+            error: invalid use of void expression
+
+[06.6] Un decimal a una funcion que pide int
+
+   HAGO: calcular_cuadrado(7)   por   calcular_cuadrado(2.9)
+   SALE: El cuadrado de 7 es 4      (el texto no lo he cambiado; mirad
+                                     el 4)
+   DIGO: ni aviso. 2.9 entra como 2, igual que en el 01.3, y 2 * 2 = 4.
+
+
+=====================================================================
+FICHERO 07_paso_por_valor.cpp     *** IMPRESCINDIBLE ***
+=====================================================================
+
+[07.1] El mismo nombre no las une
+
+   HAGO: cambio el nombre del parametro numero por saldo (en toda la
+         funcion)
+   PREGUNTO: "Ahora se llaman igual. Cambiara el saldo de main?"
+   SALE:   Dentro de sumar_diez: saldo = 110
+         Despues de llamar: saldo = 100
+   DIGO: son dos cajas distintas con la misma etiqueta. Lo que une dos
+         variables es el &, no el nombre.
+
+[07.2] Sacar el cambio sin referencias
+
+   HAGO: la funcion pasa a devolver int, con   return numero;   al final,
+         y en main la llamada sigue igual:   sumar_diez(saldo);
+   PREGUNTO: "Ahora devuelve 110. Cambia saldo?"
+   SALE: Despues de llamar: saldo = 100
+   HAGO: saldo = sumar_diez(saldo);
+   SALE: Despues de llamar: saldo = 110
+   DIGO: devolver no basta; hay que guardar lo devuelto. Hay dos formas
+         de que un cambio salga de una funcion: devolverlo y guardarlo, o
+         pasar por referencia (fichero 08).
+
+   -> HILOS: anado  #include <thread>  y cambio la llamada por
+            thread h(sumar_diez, saldo);
+            h.join();
+      SALE: Despues de llamar: saldo = 100
+      DIGO: thread tambien COPIA. Es la frase de la pizarra. Carpeta 03,
+      04_trampa_1_los_argumentos_se_copian.
+
+
+=====================================================================
+FICHERO 08_paso_por_referencia_y_puntero.cpp     *** IMPRESCINDIBLE ***
+=====================================================================
+
+[08.1] El & en el sitio equivocado
+
+   HAGO: sumar_diez(saldo);   por   sumar_diez(&saldo);
+   SALE: error: invalid conversion from 'int*' to 'int'
+         error: cannot bind rvalue '(int)(& saldo)' to 'int&'
+   DIGO: la referencia se pide en la FUNCION (int&). La llamada se
+         escribe normal. &saldo es la direccion, y eso es para punteros.
+   HAGO: al reves:   sumar_cien(&saldo);   por   sumar_cien(saldo);
+   SALE: error: invalid conversion from 'int' to 'int*'
+
+[08.2] A una referencia no se le pasa un numero suelto
+
+   HAGO: sumar_diez(5);
+   SALE: error: cannot bind non-const lvalue reference of type 'int&' to
+         an rvalue of type 'int'
+   DIGO: una referencia es otro nombre de una VARIABLE. Un 5 no es una
+         caja: no hay donde escribir.
+
+[08.3] Olvidar los asteriscos: compila y no hace nada
+
+   HAGO: *puntero = *puntero + 100;   por   puntero = puntero + 100;
+   PREGUNTO: "Compila? Cuanto valdra saldo?"
+   SALE: sin avisos:
+         Tras sumar_cien(&saldo): saldo = 110
+   DIGO: sin * se suma 100 a la DIRECCION, no al valor. El puntero se va
+         a apuntar a otro sitio y saldo ni se entera. (Si quito solo el
+         * de la izquierda, eso si da error.)
+
+[08.4] Un puntero que no apunta a nada
+
+   HAGO: antes del cout de la direccion anado:
+            int* nadie = nullptr;
+            *nadie = 5;
+   SALE: Tras sumar_diez(saldo):  saldo = 110
+         Tras sumar_cien(&saldo): saldo = 210
+         Process finished with exit code 139 (interrupted by signal 11:SIGSEGV)
+   DIGO: nullptr significa "no apunto a nada". Escribir ahi es escribir
+         en memoria que no es tuya. SIGSEGV, "segmentation fault", es el
+         cuelgue mas famoso de C++.
+
+[08.5] La direccion cambia en cada ejecucion
+
+   HAGO: ejecuto dos veces
+   SALE: Direccion de saldo: 0x7ffc5e58be44
+         Direccion de saldo: 0x7ffe479e0384
+   DIGO: el sistema coloca el programa en un sitio distinto cada vez (por
+         seguridad, os sonara de ciberseguridad). Una direccion no se
+         apunta ni se guarda: se pide con & cuando hace falta.
+
+   -> HILOS: anado  #include <thread>  y cambio  sumar_diez(saldo);  por
+            thread h(sumar_diez, saldo);
+            h.join();
+      SALE: un error enorme que sale de ficheros de la libreria:
+            error: static assertion failed: std::thread arguments must be
+            invocable after conversion to rvalues
+      HAGO: thread h(sumar_diez, ref(saldo));
+      SALE: saldo = 110 y 210, como siempre
+      DIGO: thread copia; si la funcion pide int&, ni compila. ref(saldo)
+      le dice "esta no la copies". Carpeta 03,
+      05_trampa_1_solucion_std_ref. Y cuando salga un error enorme, no
+      os asusteis: buscad la primera linea que nombra VUESTRO .cpp.
+
+
+=====================================================================
+FICHERO 09_ambito_y_tiempo_de_vida.cpp     *** IMPRESCINDIBLE ***
+=====================================================================
+
+[09.1] Quitar static
+
+   HAGO: static int recuerdo = 0;   por   int recuerdo = 0;
+   PREGUNTO: "Que valdra ahora en la tercera llamada?"
+   SALE:   local = 1, static = 1, global = 1
+           local = 1, static = 1, global = 2
+           local = 1, static = 1, global = 3
+   DIGO: sin static, recuerdo nace y muere en cada llamada, como local.
+
+[09.2] Una local tapa a la global
+
+   DIGO: en Python, para cambiar una global dentro de una funcion hacia
+         falta  global contador. En C++ cualquier funcion la cambia sin
+         pedir permiso. Comodo y peligroso.
+   HAGO: dentro de visitar, arriba del todo:   int llamadas_totales = 0;
+         y en main, detras del for:
+            cout << "En main, global = " << llamadas_totales << "\n";
+   PREGUNTO: "Cuanto vale la global al final?"
+   SALE:   local = 1, static = 1, global = 1      (las tres veces)
+         En main, global = 0
+   DIGO: la local con el mismo nombre TAPA a la global. La funcion ha
+         contado en su caja; la de verdad sigue a 0. Ni un aviso.
+
+   -> HILOS: una global la ven y la tocan todos los hilos sin avisar. Es
+      lo primero que se rompe (carpeta 04, 02_contador_compartido_roto).
+
+[09.3] Una referencia a una variable que ya ha muerto
+
+   HAGO: encima de main:
+            int& dame_numero() {
+                int numero = 42;
+                return numero;
+            }
+         y en main, detras del for:
+            cout << "Voy a leer la local muerta\n";
+            int& colgante = dame_numero();
+            cout << "Vale " << colgante << "\n";
+   PREGUNTO: "Saldra 42?"
+   SALE: aviso: reference to local variable 'numero' returned
+         (las tres lineas de visitar)
+         Voy a leer la local muerta
+         Process finished with exit code 139 (interrupted by signal 11:SIGSEGV)
+   DIGO: numero murio al salir de dame_numero. La referencia apunta a una
+         caja que ya no existe. Aqui revienta; con otro compilador puede
+         salir 42 de casualidad, y eso es peor, porque parece que va.
+
+   -> HILOS: carpeta 04, 08_referencia_colgante. Un hilo con una
+      referencia a una local de una funcion que ya ha terminado. Mismo
+      fallo, mucho mas dificil de ver.
+
+
+=====================================================================
+FICHERO 10_vector_y_string.cpp
+=====================================================================
+
+[10.1] Salirse del vector NO da error
+
+   HAGO: cout << "metros[3] = " << metros[3] << "\n";
+   PREGUNTO: "Tiene 3 elementos. En Python esto era IndexError. Y aqui?"
+   SALE: metros[3] = 0      (sin error; podria salir cualquier numero)
+   HAGO: metros[3]   por   metros.at(3)
+   SALE: terminate called after throwing an instance of 'std::out_of_range'
+           what():  vector::_M_range_check: __n (which is 3) >= this->size() (which is 3)
+         Process finished with exit code 134 (interrupted by signal 6:SIGABRT)
+   DIGO: [] no comprueba nada, lee lo que haya en esa memoria. .at() SI
+         comprueba. Cuando un vector haga algo raro, cambiad [] por .at()
+         para encontrar el fallo.
+
+[10.2] En C++, = SI copia el vector
+
+   HAGO: vector<int> copia = metros;
+         copia[0] = 99;
+         cout << "metros[0] = " << metros[0] << "\n";
+   PREGUNTO: "He tocado la copia. Cuanto vale metros[0]?"
+   SALE: metros[0] = 8
+   DIGO: al reves que en Python: aqui = copia el vector entero. Para
+         compartirlo hace falta &. Por eso duplicar_todos lleva &:
+   HAGO: quito el & de   vector<int>& numeros
+   SALE: Ana lleva 4 metros / Luis lleva 7 metros / Eva lleva 1 metros
+
+   -> HILOS: para que varios hilos trabajen sobre el MISMO vector hay que
+      pasarlo con ref. Sin ref, cada hilo trabaja en su copia y el
+      resultado no vuelve a main.
+
+[10.3] Parentesis frente a llaves
+
+   HAGO: vector<int> resultados(3, 0);   por   resultados{3, 0};
+   SALE: resultados tiene 2 casillas
+   DIGO: (3, 0) son tres casillas a 0. {3, 0} son los numeros 3 y 0.
+
+[10.4] Sumar textos: tres sorpresas seguidas
+
+   HAGO: string mal = "Ana" + " lleva ";
+   SALE: error: invalid operands of types 'const char [4]' and
+         'const char [8]' to binary 'operator+'
+   HAGO: quito el to_string:   nombres[i] + " lleva " + metros[i]
+   SALE: error: no match for 'operator+' (operand types are
+         'std::__cxx11::basic_string<char>' and ... 'int')
+   HAGO: string saludo = "Tortuga " + 3;
+         cout << saludo << "\n";
+   PREGUNTO: "Saldra Tortuga 3?"
+   SALE: tuga               (ni error ni aviso)
+   DIGO: dos textos entre comillas no son string y no se suman; con un
+         string delante, si. Y texto + numero no convierte nada: salta 3
+         letras. Para meter un numero en un texto, siempre to_string.
+
+[10.5] size() no tiene negativos
+
+   HAGO: vector<int> vacio;
+         cout << "vacio.size() - 1 = " << vacio.size() - 1 << "\n";
+   PREGUNTO: "Cuanto es 0 - 1?"
+   SALE: vacio.size() - 1 = 18446744073709551615
+   DIGO: size() devuelve un entero SIN signo. No existe el -1: da la
+         vuelta al numero mas grande. Por eso escribimos
+         (int) numeros.size().
+
+
+=====================================================================
+FICHERO 11_entrada_por_consola.cpp
+=====================================================================
+
+[11.1] Que lee cin de verdad
+
+   HAGO: ejecuto varias veces y escribo una cosa distinta cada vez.
+   PREGUNTO antes de cada una: "Que hara?"
+   SALE:
+      escribo 5             -> Correran 5 tortugas
+      escribo hola          -> (entrada no valida, uso el valor por defecto)
+                               Correran 3 tortugas
+      escribo 7abc          -> Correran 7 tortugas
+      escribo 3.9           -> Correran 3 tortugas
+      escribo -2            -> Correran -2 tortugas
+      escribo 99999999999   -> (entrada no valida, uso el valor por defecto)
+                               Correran 3 tortugas
+   DIGO: cin coge lo que le sirve y se para en lo primero que no es un
+         numero. 7abc no falla: coge el 7. De 3.9 coge el 3, sin
+         redondear. Un numero que no cabe en un int si falla. Y -2 lo
+         acepta: que sea un numero no quiere decir que tenga sentido;
+         eso lo comprobamos nosotros.
+
+[11.2] Lo que sobra se queda esperando
+
+   HAGO: detras del if anado una segunda lectura:
+            cout << "Y cuantas vueltas? ";
+            int vueltas = 0;
+            cin >> vueltas;
+            cout << "vueltas = " << vueltas << "\n";
+         y escribo 7abc
+   SALE: Cuantas tortugas corren? 7abc
+         Y cuantas vueltas? vueltas = 0        (no me deja escribir)
+   DIGO: el abc que sobro seguia en la entrada. La segunda lectura se lo
+         encuentra, falla y ni espera al teclado.
+
+[11.3] Intro sin escribir nada
+
+   HAGO: pulso Intro tres veces sin escribir
+   SALE: sigue esperando
+   DIGO: cin >> se salta espacios y saltos de linea hasta encontrar algo.
+         Un programa esperando entrada parece colgado. En CLion, haced
+         click en la consola de abajo antes de escribir.
+
+[11.4] Un string se lee palabra a palabra
+
+   HAGO: #include <string>, y antes del ultimo cout:
+            string nombre;
+            cout << "Nombre? ";
+            cin >> nombre;
+            cout << "Hola, " << nombre << "\n";
+         escribo 3 y despues   Ana Garcia
+   SALE: Hola, Ana
+   DIGO: >> se para en el primer espacio.
+
+
+=====================================================================
+FICHERO 12_mismo_ejercicio_con_for.cpp
+=====================================================================
+
+[12.1] La suma en un int
+
+   HAGO: double suma = 0.0;   por   int suma = 0;
+   PREGUNTO: "Las notas suman 35.5. Que saldra?"
+   SALE: Suma: 34
+         Media: 5
+         Aprobados: 4 de 6
+   DIGO: cada vez que se guarda en suma se cortan los decimales (7.5
+         entra como 7, 3.5 como 3...), y despues la media es entre
+         enteros. Ni un aviso. Es el fichero 02 otra vez.
+
+[12.2] Una vuelta de mas que no se ve
+
+   HAGO: i < (int) notas.size()   por   i <= (int) notas.size()
+   PREGUNTO: "En la ultima vuelta lee notas[6], que no existe. Que pasa?"
+   SALE: exactamente lo mismo que antes (en mi portatil)
+   HAGO: cambio los notas[i] por notas.at(i)
+   SALE: terminate called after throwing an instance of 'std::out_of_range'
+           what():  vector::_M_range_check: __n (which is 6) >= this->size() (which is 6)
+   DIGO: ha leido una casilla que no es suya y ha tenido suerte (habia un
+         0). El fallo que no se ve es el peor. .at() lo destapa.
+
+[12.3] Quitar el (int)
+
+   HAGO: quito el (int) de la condicion
+   SALE: aviso: comparison of integer expressions of different signedness
+         y el resultado igual
+   DIGO: el por que esta en el 10.5.
+
+
+=====================================================================
+FICHERO 13_mismo_ejercicio_con_while.cpp
+=====================================================================
+
+[13.1] El i++ arriba
+
+   HAGO: muevo el i++ a la primera linea del cuerpo del while
+   SALE: Suma: 28
+         Media: 4.66667
+         Aprobados: 3 de 6
+   DIGO: se salta notas[0] (el 7.5) y en la ultima vuelta lee notas[6],
+         que no existe. La actualizacion va AL FINAL del cuerpo.
+
+[13.2] Reiniciar dentro
+
+   HAGO: dejo   int i = 0;   fuera y anado   i = 0;   como primera linea
+         del cuerpo
+   SALE: pantalla vacia, no acaba nunca (boton rojo)
+   DIGO: el INICIO va fuera del bucle. Si lo metes dentro, se reinicia en
+         cada vuelta. (Y si meto dentro el  int i = 0;  entero, ni compila:
+         'i' was not declared in this scope, porque la condicion lo usa
+         antes.)
+
+
+=====================================================================
+FICHERO 14_aleatoriedad_y_tiempo.cpp
+=====================================================================
+
+[14.1] Misma semilla, mismos numeros
+
+   HAGO: mt19937 generador(semilla());   por   mt19937 generador(1);
+         y ejecuto dos veces
+   SALE: las dos veces: avanzo 3, 5, 4, 5, 1
+   DIGO: el azar del ordenador es una formula que arranca de una semilla.
+         random_device da una semilla distinta cada vez; con un 1 fijo,
+         siempre la misma "suerte". Sirve para repetir un fallo.
+
+[14.2] El generador dentro del bucle
+
+   HAGO: borro el generador de arriba y lo creo como primera linea del
+         for:   mt19937 generador(1);
+   SALE: Paso 1: avanzo 3 metros ... Paso 5: avanzo 3 metros   (todos 3)
+   DIGO: en cada vuelta la formula vuelve a empezar desde el principio.
+         El generador se crea UNA vez, fuera del bucle.
+
+   -> HILOS: cada hilo tendra su propio generador, creado una sola vez al
+      principio de su funcion.
+
+[14.3] 500 ms exactos?
+
+   PREGUNTO: "Duermo 5 veces 100 ms. Tardara 500 exactos?"
+   SALE: Tiempo total: 500 ms
+   HAGO: en las dos lineas de la duracion cambio milliseconds por
+         microseconds (y ms por microsegundos en el texto)
+   SALE: Tiempo total: 500496 microsegundos    (cambia en cada ejecucion)
+   DIGO: en milisegundos parecia exacto porque duration_cast corta lo que
+         sobra. sleep_for duerme AL MENOS lo pedido, nunca exacto.
+
+[14.4] Sin sleep_for
+
+   HAGO: borro la linea del sleep_for
+   SALE: Tiempo total: 0 ms
+   DIGO: cinco vueltas con cout no llegan a un milisegundo. El sleep es lo
+         que nos deja VER las cosas pasar.
+   HAGO: sleep_for(chrono::milliseconds(100))   por   sleep_for(100)
+   SALE: error: no matching function for call to 'sleep_for(int)'
+   DIGO: 100 que? C++ obliga a decir la unidad.
+
+   -> HILOS: con sleep_for provocaremos que los hilos se mezclen, pero NO
+      sirve para esperar a que otro hilo acabe (carpeta 04,
+      06_esperar_con_sleep_falla). Para eso esta join.
+
+
+=====================================================================
+FICHERO 15_carrera_tortugas_lineal.cpp     *** CIERRE ***
+=====================================================================
+
+[15.1] Azar en los metros, orden fijo
+
+   HAGO: ejecuto 3 veces seguidas
+   PREGUNTO: "Que cambia y que no cambia?"
+   SALE: los metros cambian; el orden 1, 2, 3 nunca
+
+[15.2] La carrera no es justa
+
+   HAGO: mt19937 generador(semilla());   por   mt19937 generador(2);
+         (asi sale siempre la misma carrera)
+   PREGUNTO: "Si la tortuga 2 llega a la meta, mueve la 3 en esa ronda?"
+   SALE: (final)
+         Tortuga 3 ha recorrido 99 metros
+         Tortuga 1 ha recorrido 99 metros
+         Tortuga 2 ha recorrido 102 metros
+         La tortuga 2 ha llegado a la meta!
+   DIGO: la 3 estaba a 99 y ni llega a mover: si le hubiera tocado antes,
+         podia haber ganado. En un programa lineal alguien SIEMPRE va
+         antes.
+
+[15.3] Quitar la bandera del bucle de dentro
+
+   HAGO: con la semilla 2, quito   && !hay_ganadora   del while de dentro
+   SALE: (final)
+         Tortuga 3 ha recorrido 99 metros
+         Tortuga 1 ha recorrido 99 metros
+         Tortuga 2 ha recorrido 102 metros
+         Tortuga 3 ha recorrido 101 metros
+         La tortuga 3 ha llegado a la meta!
+   DIGO: la 2 llega primero y gana la 3. La ronda sigue y ganadora se
+         sobrescribe con la ultima que cruza. La bandera hay que mirarla
+         tambien DENTRO, no solo en el while de fuera. Otra vez el 05.5.
+
+[15.4] Olvidar el t++
+
+   HAGO: borro el t++
+   SALE: solo mueve la tortuga 1, hasta pasar de 100, y gana la 1. Ni una
+         linea de la 2 ni de la 3.
+   DIGO: el bucle de dentro nunca pasa a la siguiente tortuga. Si no
+         fuera por la bandera, no acabaria nunca.
+
+[15.5] El inicio del bucle de dentro, fuera
+
+   HAGO: muevo   int t = 0;   encima del while de fuera
+   SALE: una sola ronda (Tortuga 1, Tortuga 2, Tortuga 3) y despues
+         pantalla quieta para siempre (boton rojo)
+   DIGO: en la segunda ronda t ya vale 3: el bucle de dentro no entra,
+         nadie avanza y nadie gana. Lo mismo que el 13.2, pero al reves.
+
+[15.6] Frase de cierre del repaso
+
+   DIGO: "Los metros cambian porque lo hemos pedido con random. El orden
+         no cambia nunca. En la carpeta 03 cojo este mismo programa,
+         meto cada tortuga en un hilo, no toco el random, y el orden
+         cambiara en cada ejecucion. Ese dia empieza la asignatura."

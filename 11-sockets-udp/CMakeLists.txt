@@ -1,0 +1,5 @@
+# 11-sockets-udp: parejas servidor/cliente, se lanzan en dos terminales (ver GUION.md)
+pcd_ejemplo(01_servidor_udp_eco)
+pcd_ejemplo(02_cliente_udp_eco)
+pcd_ejemplo(03_receptor_udp_sin_garantias)
+pcd_ejemplo(04_emisor_udp_sin_conexion)
